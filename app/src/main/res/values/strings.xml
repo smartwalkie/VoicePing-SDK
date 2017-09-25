@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">VoicePing Client</string>
+    <string name="title_activity_login">Connect</string>
+    <string name="title_activity_main">VoicePing</string>
+
+    <string name="text_button_connect">Connect</string>
+    <string name="text_button_subscribe">Subscribe</string>
+    <string name="text_button_talk">Talk!</string>
+    <string name="text_button_unsubscribe">Unsubscribe</string>
+    <string name="text_button_disconnect">Disconnect</string>
+
+    <!-- Strings related to connect functionality -->
+    <string name="prompt_user_id">User ID</string>
+    <string name="prompt_server_address">Server Address</string>
+    <string name="action_connect">Connect</string>
+    <string name="error_invalid_username">This username is invalid</string>
+    <string name="error_invalid_user_id">Invalid User ID</string>
+    <string name="error_invalid_server_address">This server address is invalid</string>
+    <string name="error_field_required">This field is required</string>
+</resources>
