@@ -8,11 +8,10 @@ for enabling Push-To-Talk (PTT) functionality to your Android project.
 
 How to install this SDK to your Android project
 
-1. Clone the project
-2. Built voiceping-sdk module
-3. Add .aar file to your project
-4. Sync
-5. Use it
+1. Go to app/libs
+2. Copy voiceping-sdk.aar file to your project
+3. Add the aar file as dependency to your build.gradle
+4. Use it
 
 ## Steps to use VoicePing Android SDK
 
