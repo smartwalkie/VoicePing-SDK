@@ -89,6 +89,17 @@ String groupId = "group_id";
 VoicePingClientApp.getVoicePing().startTalking(groupId, ChannelType.GROUP, this);
 ```
 
+if you want to save the recorded audio as a WAV file at the end of the talk, you can use,
+
+```java
+String receiverId = "receiver_id";
+int channelType = ChannelType.PRIVATE // or ChannelType.GROUP if you want to target group
+String destinationPath = "destination_path";
+VoicePingClientApp.getVoicePing().startTalking(receiverId, channelType, this, destinationPath);
+```
+
+instead.
+
 4. Stop Talking
 
 To stop talking, for both Private and Group PTT, you can use,
@@ -132,6 +143,26 @@ To unsubscribe from a group channel, you can use,
 ```java
 String groupId = "group_id";
 VoicePingClientApp.getVoicePing().unsubscribe(groupId);
+```
+
+8. Mute from specific channel
+
+To mute from specific channel, you can use,
+
+```java
+String senderId = "sender_id";
+int channelType = ChannelType.PRIVATE // or ChannelType.GROUP if you want to target group
+VoicePingClientApp.getVoicePing().mute(senderId, channelType);
+```
+
+9. Unmute to specific channel
+
+To unmute to specific channel, you can use,
+
+```java
+String senderId = "sender_id";
+int channelType = ChannelType.PRIVATE // or ChannelType.GROUP if you want to target group
+VoicePingClientApp.getVoicePing().unmute(senderId, channelType);
 ```
 
 ## Advance
@@ -238,10 +269,4 @@ VoicePingClientApp.getVoicePing().setChannelListener(this);
 
 ```AudioInterceptor``` in ```audioRecorder.addAudioInterceptor(AudioInterceptor audioInterceptor)``` 
 and ```audioPlayer.addAudioInterceptor(AudioInterceptor audioInterceptor)``` are running on 
-separated thread. If you want to touch UI from there, you need to run it on Main Thread. 
-
-
-### TO DO
-
-1. Improve sample app, add some advanced customizations.
-2. Unit tests.
+separated thread. If you want to touch UI from there, you need to run it on Main Thread.
