@@ -7,6 +7,8 @@
     <string name="text_button_subscribe">Subscribe</string>
     <string name="text_button_talk">Talk!</string>
     <string name="text_button_unsubscribe">Unsubscribe</string>
+    <string name="text_button_mute">Mute</string>
+    <string name="text_button_unmute">Unmute</string>
     <string name="text_button_disconnect">Disconnect</string>
 
     <!-- Strings related to connect functionality -->

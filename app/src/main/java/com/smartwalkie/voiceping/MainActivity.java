@@ -48,6 +48,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private Button unsubscribeButton;
     private Spinner channelTypeSpinner;
     private TextInputLayout channelInputLayout;
+    private Button muteButton;
+    private Button unmuteButton;
     private LinearLayout llOutgoingTalk;
     private ProgressBar pbOutgoingTalk;
     private LinearLayout llIncomingTalk;
@@ -69,7 +71,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                     talkButton.setText("RELEASE TO STOP");
                     talkButton.setBackgroundColor(Color.YELLOW);
-                    //VoicePing.startTalking(64, ChannelType.PRIVATE);
+//                    String destinationPath = getExternalFilesDir(null) + "/ptt_audio.wav";
+//                    VoicePingClientApp.getVoicePing().startTalking(receiverId, channelType, MainActivity.this, destinationPath);
                     VoicePingClientApp.getVoicePing().startTalking(receiverId, channelType, MainActivity.this);
                     break;
                 case MotionEvent.ACTION_UP:
@@ -93,6 +96,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             Log.v(TAG, "subscribeListener");
             String groupId = receiverIdText.getText().toString().trim();
             VoicePingClientApp.getVoicePing().subscribe(groupId);
+            Toast.makeText(MainActivity.this, "Subscribe to " + groupId, Toast.LENGTH_SHORT).show();
         }
     };
 
@@ -102,6 +106,27 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             Log.v(TAG, "unsubscribeListener");
             String groupId = receiverIdText.getText().toString().trim();
             VoicePingClientApp.getVoicePing().unsubscribe(groupId);
+            Toast.makeText(MainActivity.this, "Unsubscribe from " + groupId, Toast.LENGTH_SHORT).show();
+        }
+    };
+
+    private final View.OnClickListener muteListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            Log.v(TAG, "muteListener");
+            String receiverId = receiverIdText.getText().toString().trim();
+            VoicePingClientApp.getVoicePing().mute(receiverId, channelType);
+            Toast.makeText(MainActivity.this, "Mute channel " + receiverId, Toast.LENGTH_SHORT).show();
+        }
+    };
+
+    private final View.OnClickListener unmuteListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            Log.v(TAG, "unmuteListener");
+            String receiverId = receiverIdText.getText().toString().trim();
+            VoicePingClientApp.getVoicePing().unmute(receiverId, channelType);
+            Toast.makeText(MainActivity.this, "Unmute channel " + receiverId, Toast.LENGTH_SHORT).show();
         }
     };
 
@@ -126,12 +151,15 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         subscribeButton = (Button) findViewById(R.id.subscribe_button);
         subscribeButton.setOnClickListener(subscribeListener);
-        subscribeButton.setBackgroundColor(Color.CYAN);
         unsubscribeButton = (Button) findViewById(R.id.unsubscribe_button);
         unsubscribeButton.setOnClickListener(unsubscribeListener);
-        unsubscribeButton.setBackgroundColor(Color.YELLOW);
         unsubscribeButtonsLayout = (LinearLayout) findViewById(R.id.ll_unsubscribe_buttons);
         unsubscribeButtonsLayout.setVisibility(View.GONE);
+
+        muteButton = (Button) findViewById(R.id.mute_button);
+        muteButton.setOnClickListener(muteListener);
+        unmuteButton = (Button) findViewById(R.id.unmute_button);
+        unmuteButton.setOnClickListener(unmuteListener);
 
         llOutgoingTalk = (LinearLayout) findViewById(R.id.ll_outgoing_talk);
         pbOutgoingTalk = (ProgressBar) findViewById(R.id.pb_outgoing_talk);
@@ -172,18 +200,19 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                             public void onClick(DialogInterface dialog, int which) {
                                 VoicePingClientApp.getVoicePing()
                                         .disconnect(new DisconnectCallback() {
-                                    @Override
-                                    public void onDisconnected() {
-                                        Log.v(TAG, "onDisconnected...");
-                                        if (!isFinishing()) {
-                                            startActivity(new Intent(MainActivity.this,
-                                                    LoginActivity.class));
-                                            finish();
-                                            Toast.makeText(MainActivity.this, "Disconnected!",
-                                                    Toast.LENGTH_SHORT).show();
-                                        }
-                                    }
-                                });
+                                            @Override
+                                            public void onDisconnected() {
+                                                Log.v(TAG, "onDisconnected...");
+                                                if (!isFinishing()) {
+                                                    VoicePingClientApp.getVoicePing().unmuteAll();
+                                                    startActivity(new Intent(MainActivity.this,
+                                                            LoginActivity.class));
+                                                    finish();
+                                                    Toast.makeText(MainActivity.this, "Disconnected!",
+                                                            Toast.LENGTH_SHORT).show();
+                                                }
+                                            }
+                                        });
                             }
                         })
                         .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {

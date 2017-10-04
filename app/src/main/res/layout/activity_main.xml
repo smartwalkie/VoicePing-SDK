@@ -94,12 +94,40 @@
                 style="?android:textAppearanceSmall"/>
 
             <LinearLayout
+                android:orientation="horizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center_horizontal">
+
+                <Button
+                    android:id="@+id/mute_button"
+                    android:layout_height="wrap_content"
+                    android:layout_width="0dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_weight="1"
+                    android:text="@string/text_button_mute"
+                    android:textStyle="bold"
+                    style="?android:textAppearanceSmall"/>
+
+                <Button
+                    android:id="@+id/unmute_button"
+                    android:layout_height="wrap_content"
+                    android:layout_width="0dp"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_weight="1"
+                    android:text="@string/text_button_unmute"
+                    android:textStyle="bold"
+                    style="?android:textAppearanceSmall"/>
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/ll_outgoing_talk"
                 android:orientation="vertical"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
-                android:padding="24dp">
+                android:padding="8dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -110,7 +138,7 @@
                     android:id="@+id/pb_outgoing_talk"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="4dp"
                     style="@style/Widget.AppCompat.ProgressBar.Horizontal"
                     android:max="12000"
                     android:progressDrawable="@drawable/pb_audio_amplitude_outgoing"/>
@@ -123,7 +151,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_horizontal"
-                android:padding="24dp">
+                android:padding="8dp">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -134,7 +162,7 @@
                     android:id="@+id/pb_incoming_talk"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="4dp"
                     style="@style/Widget.AppCompat.ProgressBar.Horizontal"
                     android:max="12000"
                     android:progressDrawable="@drawable/pb_audio_amplitude_incoming"/>
