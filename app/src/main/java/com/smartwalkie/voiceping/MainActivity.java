@@ -20,6 +20,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.smartwalkie.voicepingsdk.callbacks.DisconnectCallback;
@@ -29,6 +30,7 @@ import com.smartwalkie.voicepingsdk.listeners.AudioPlayer;
 import com.smartwalkie.voicepingsdk.listeners.AudioRecorder;
 import com.smartwalkie.voicepingsdk.listeners.ChannelListener;
 import com.smartwalkie.voicepingsdk.listeners.OutgoingTalkCallback;
+import com.smartwalkie.voicepingsdk.models.Channel;
 import com.smartwalkie.voicepingsdk.models.ChannelType;
 
 import java.nio.ByteBuffer;
@@ -51,8 +53,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private Button muteButton;
     private Button unmuteButton;
     private LinearLayout llOutgoingTalk;
+    private TextView tvOutgoingTalk;
     private ProgressBar pbOutgoingTalk;
     private LinearLayout llIncomingTalk;
+    private TextView tvIncomingTalk;
     private ProgressBar pbIncomingTalk;
     private int channelType = ChannelType.PRIVATE;
 
@@ -162,8 +166,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         unmuteButton.setOnClickListener(unmuteListener);
 
         llOutgoingTalk = (LinearLayout) findViewById(R.id.ll_outgoing_talk);
+        tvOutgoingTalk = (TextView) findViewById(R.id.tv_outgoing_talk);
         pbOutgoingTalk = (ProgressBar) findViewById(R.id.pb_outgoing_talk);
         llIncomingTalk = (LinearLayout) findViewById(R.id.ll_incoming_talk);
+        tvIncomingTalk = (TextView) findViewById(R.id.tv_incoming_talk);
         pbIncomingTalk = (ProgressBar) findViewById(R.id.pb_incoming_talk);
 
         llOutgoingTalk.setVisibility(View.GONE);
@@ -259,9 +265,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public void onIncomingTalkStarted(AudioPlayer audioPlayer) {
         Log.d(TAG, "onIncomingTalkStarted");
         llIncomingTalk.setVisibility(View.VISIBLE);
-        audioPlayer.addAudioInterceptor(new AudioInterceptor() {
+        audioPlayer.addInterceptorAfterDecoded(new AudioInterceptor() {
             @Override
-            public byte[] proceed(byte[] data) {
+            public byte[] proceed(byte[] data, final Channel channel) {
                 ShortBuffer sb = ByteBuffer.wrap(data).asShortBuffer();
                 short[] dataShortArray = new short[sb.limit()];
                 sb.get(dataShortArray);
@@ -269,6 +275,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        tvIncomingTalk.setText("Incoming from: " + channel.getSenderId() + ", to: " + channel.getReceiverId());
                         pbIncomingTalk.setProgress((int) amplitude - 7000);
                     }
                 });
@@ -293,9 +300,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public void onOutgoingTalkStarted(AudioRecorder audioRecorder) {
         Log.d(TAG, "onOutgoingTalkStarted");
         llOutgoingTalk.setVisibility(View.VISIBLE);
-        audioRecorder.addAudioInterceptor(new AudioInterceptor() {
+        audioRecorder.addInterceptorBeforeEncoded(new AudioInterceptor() {
             @Override
-            public byte[] proceed(byte[] data) {
+            public byte[] proceed(byte[] data, final Channel channel) {
                 ShortBuffer sb = ByteBuffer.wrap(data).asShortBuffer();
                 short[] dataShortArray = new short[sb.limit()];
                 sb.get(dataShortArray);
@@ -303,6 +310,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
+                        tvOutgoingTalk.setText("Outgoing from: " + channel.getSenderId() + ", to: " + channel.getReceiverId());
                         pbOutgoingTalk.setProgress((int) amplitude - 7000);
                     }
                 });
