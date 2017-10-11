@@ -167,9 +167,9 @@ VoicePingClientApp.getVoicePing().unmute(senderId, channelType);
 
 ## Advance
 
-1. Custom audio parameters
+### Custom audio parameters
 
-You can use custom audio parameters in your app using builder pattern. Instead of directly using,
+You can use custom audio parameters in your app using builder pattern. Instead of directly using
 
 ```java
 String serverUrl = "voiceping_sdk_server_url";
@@ -189,19 +189,55 @@ mVoicePing = VoicePing.newBuilder()
         .buildAndInit(this, serverUrl);
 ```
 
-2. OutgoingTalkCallback
+### Intercepting audio data
+
+![Flow](./vp-sdk-flow.png)
+
+The audio data are represented in array of byte. There are 4 states that are exposed to client app 
+so that the client app will be able to intercept audio data and do some advance techniques to them.
+
+  * Before being encoded (raw audio data)
+  
+        audioRecorder.addInterceptorBeforeEncoded(audioInterceptor);
+        
+    This state is suitable for doing some advance techniques that require raw recorded audio data, 
+    such as showing amplitude of the audio, change pitch, etc.
+  
+  * After being encoded (encoded audio data)
+  
+        audioRecorder.addInterceptorAfterEncoded(audioInterceptor);
+        
+    If you want to modify audio data after the data being encoded but before being sent to the server,
+    you can intercept data in this state. Operation such as encryption that doesn't require raw data
+    is suitable in this state.
+  
+  * Before being decoded (encoded audio data)
+  
+        audioPlayer.addInterceptorBeforeDecoded(audioInterceptor);
+        
+    Let's say, you have encrypted audio data in previous state, and you want to decrypt them, you can
+    use this state to do that.
+  
+  * After being decoded (raw audio data)
+  
+        audioPlayer.addInterceptorAfterDecoded(audioInterceptor);
+        
+    If you want to do some advance techniques that require raw received audio data, such as showing 
+    amplitude of the audio, change pitch, etc, then this state is for you.
+
+1. **OutgoingTalkListener**
 
 To do some advance techniques for the recorded audio, such as showing amplitude of the 
 audio, change pitch, and save the audio to local storage, you need to implement 
-OutgoingTalkCallback and attach it to ```startTalking```.
-OutgoingTalkCallback is needed to do ```startTalking```,
+OutgoingTalkListener and attach it to ```startTalking```.
+OutgoingTalkListener is needed to do ```startTalking```,
 
 ```java
 String receiverId = "your_receiver_id";
 VoicePingClientApp.getVoicePing().startTalking(receiverId, ChannelType.PRIVATE, this);
 ```
 
-with ```this``` is the instance that has implemented OutgoingTalkCallback.
+with ```this``` is the instance that has implemented OutgoingTalkListener.
 
 ```java
 public class MainActivity extends AppCompatActivity implements OutgoingTalkListener {
@@ -229,7 +265,7 @@ public class MainActivity extends AppCompatActivity implements OutgoingTalkListe
 
 You can do a lot of thing by putting your code inside the appropriate methods.
 
-3. ChannelListener
+2. **ChannelListener**
 
 To do some advance techniques for the received audio, you need to implement ChannelListener.
 ChannelListener is needed to customize incoming talk.
@@ -265,8 +301,7 @@ instance using,
 VoicePingClientApp.getVoicePing().setChannelListener(this);
 ```
 
-### Warning
+#### Warning
 
-```AudioInterceptor``` in ```audioRecorder.addAudioInterceptor(AudioInterceptor audioInterceptor)``` 
-and ```audioPlayer.addAudioInterceptor(AudioInterceptor audioInterceptor)``` are running on 
-separated thread. If you want to touch UI from there, you need to run it on Main Thread.
+```AudioInterceptor``` is running on separated thread from Main Thread. 
+If you want to touch UI from there, you need to run it on Main Thread. 
