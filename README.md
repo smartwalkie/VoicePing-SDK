@@ -185,7 +185,6 @@ mVoicePing = VoicePing.newBuilder()
         .setSampleRate(16000)
         .setFrameSize(960)
         .setChannelSize(1)
-        .setBufferSizeFactor(2)
         .buildAndInit(this, serverUrl);
 ```
 
@@ -198,14 +197,14 @@ so that the client app will be able to intercept audio data and do some advance 
 
   * Before being encoded (raw audio data)
   
-        audioRecorder.addInterceptorBeforeEncoded(audioInterceptor);
+        audioRecorder.setInterceptorBeforeEncoded(audioInterceptor);
         
     This state is suitable for doing some advance techniques that require raw recorded audio data, 
     such as showing amplitude of the audio, change pitch, etc.
   
   * After being encoded (encoded audio data)
   
-        audioRecorder.addInterceptorAfterEncoded(audioInterceptor);
+        audioRecorder.setInterceptorAfterEncoded(audioInterceptor);
         
     If you want to modify audio data after the data being encoded but before being sent to the server,
     you can intercept data in this state. Operation such as encryption that doesn't require raw data
@@ -213,14 +212,14 @@ so that the client app will be able to intercept audio data and do some advance 
   
   * Before being decoded (encoded audio data)
   
-        audioPlayer.addInterceptorBeforeDecoded(audioInterceptor);
+        audioPlayer.setInterceptorBeforeDecoded(audioInterceptor);
         
     Let's say, you have encrypted audio data in previous state, and you want to decrypt them, you can
     use this state to do that.
   
   * After being decoded (raw audio data)
   
-        audioPlayer.addInterceptorAfterDecoded(audioInterceptor);
+        audioPlayer.setInterceptorAfterDecoded(audioInterceptor);
         
     If you want to do some advance techniques that require raw received audio data, such as showing 
     amplitude of the audio, change pitch, etc, then this state is for you.
