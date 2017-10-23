@@ -265,7 +265,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public void onIncomingTalkStarted(AudioPlayer audioPlayer) {
         Log.d(TAG, "onIncomingTalkStarted");
         llIncomingTalk.setVisibility(View.VISIBLE);
-        audioPlayer.addInterceptorAfterDecoded(new AudioInterceptor() {
+        audioPlayer.setInterceptorAfterDecoded(new AudioInterceptor() {
             @Override
             public byte[] proceed(byte[] data, final Channel channel) {
                 ShortBuffer sb = ByteBuffer.wrap(data).asShortBuffer();
@@ -300,7 +300,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public void onOutgoingTalkStarted(AudioRecorder audioRecorder) {
         Log.d(TAG, "onOutgoingTalkStarted");
         llOutgoingTalk.setVisibility(View.VISIBLE);
-        audioRecorder.addInterceptorBeforeEncoded(new AudioInterceptor() {
+        audioRecorder.setInterceptorBeforeEncoded(new AudioInterceptor() {
             @Override
             public byte[] proceed(byte[] data, final Channel channel) {
                 ShortBuffer sb = ByteBuffer.wrap(data).asShortBuffer();
