@@ -33,14 +33,21 @@ import com.smartwalkie.voicepingsdk.listeners.OutgoingTalkCallback;
 import com.smartwalkie.voicepingsdk.models.Channel;
 import com.smartwalkie.voicepingsdk.models.ChannelType;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener,
         ChannelListener, OutgoingTalkCallback {
 
     private static final String TAG = MainActivity.class.getSimpleName();
-
     private static final String[] CHANNEL_TYPES = { "PRIVATE", "GROUP" };
 
     private EditText receiverIdText;
@@ -58,6 +65,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private LinearLayout llIncomingTalk;
     private TextView tvIncomingTalk;
     private ProgressBar pbIncomingTalk;
+    private String mDestinationPath;
+
     private int channelType = ChannelType.PRIVATE;
 
     private final View.OnTouchListener touchListener = new View.OnTouchListener() {
@@ -66,17 +75,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
                     String receiverId = receiverIdText.getText().toString().trim();
-
                     if (receiverId == null || receiverId.isEmpty()) {
                         receiverIdText.setError(getString(R.string.error_invalid_user_id));
                         receiverIdText.requestFocus();
                         break;
                     }
-
                     talkButton.setText("RELEASE TO STOP");
                     talkButton.setBackgroundColor(Color.YELLOW);
-//                    String destinationPath = getExternalFilesDir(null) + "/ptt_audio.wav";
-//                    VoicePingClientApp.getVoicePing().startTalking(receiverId, channelType, MainActivity.this, destinationPath);
+//                    VoicePingClientApp.getVoicePing().startTalking(receiverId, channelType, MainActivity.this, mDestinationPath);
                     VoicePingClientApp.getVoicePing().startTalking(receiverId, channelType, MainActivity.this);
                     break;
                 case MotionEvent.ACTION_UP:
@@ -138,6 +144,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+//        mDestinationPath = getExternalFilesDir(null) + "/ptt_audio.opus";
 
         channelInputLayout = (TextInputLayout) findViewById(R.id.channel_input_layout);
         channelTypeSpinner = (Spinner) findViewById(R.id.channel_type_spinner);
@@ -191,6 +198,11 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
     }
@@ -198,6 +210,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
+            case R.id.action_open_player:
+                startActivity(PlayerActivity.generateIntent(this, mDestinationPath));
+                break;
             case R.id.action_disconnect:
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 builder.setTitle(R.string.text_button_disconnect)
@@ -206,19 +221,19 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                             public void onClick(DialogInterface dialog, int which) {
                                 VoicePingClientApp.getVoicePing()
                                         .disconnect(new DisconnectCallback() {
-                                            @Override
-                                            public void onDisconnected() {
-                                                Log.v(TAG, "onDisconnected...");
-                                                if (!isFinishing()) {
-                                                    VoicePingClientApp.getVoicePing().unmuteAll();
-                                                    startActivity(new Intent(MainActivity.this,
-                                                            LoginActivity.class));
-                                                    finish();
-                                                    Toast.makeText(MainActivity.this, "Disconnected!",
-                                                            Toast.LENGTH_SHORT).show();
-                                                }
-                                            }
-                                        });
+                                    @Override
+                                    public void onDisconnected() {
+                                        Log.v(TAG, "onDisconnected...");
+                                        if (!isFinishing()) {
+                                            VoicePingClientApp.getVoicePing().unmuteAll();
+                                            startActivity(new Intent(MainActivity.this,
+                                                    LoginActivity.class));
+                                            finish();
+                                            Toast.makeText(MainActivity.this, "Disconnected!",
+                                                    Toast.LENGTH_SHORT).show();
+                                        }
+                                    }
+                                });
                             }
                         })
                         .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
@@ -300,6 +315,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public void onOutgoingTalkStarted(AudioRecorder audioRecorder) {
         Log.d(TAG, "onOutgoingTalkStarted");
         llOutgoingTalk.setVisibility(View.VISIBLE);
+        // Add interceptor before encoded
         audioRecorder.setInterceptorBeforeEncoded(new AudioInterceptor() {
             @Override
             public byte[] proceed(byte[] data, final Channel channel) {
@@ -320,8 +336,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     @Override
-    public void onOutgoingTalkStopped() {
+    public void onOutgoingTalkStopped(String downloadUrl) {
         Log.d(TAG, "onOutgoingTalkStopped");
+        Log.d(TAG, "download url: " + downloadUrl);
+        downloadFileAsync(downloadUrl);
         llOutgoingTalk.setVisibility(View.GONE);
     }
 
@@ -330,6 +348,40 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         e.printStackTrace();
         llOutgoingTalk.setVisibility(View.GONE);
         Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+    }
+
+    private void downloadFileAsync(final String downloadUrl) {
+        Log.d(TAG, "start to download file from: " + downloadUrl);
+        OkHttpClient client = new OkHttpClient();
+        final Request request = new Request.Builder().url(downloadUrl).build();
+        client.newCall(request)
+                .enqueue(new Callback() {
+                    @Override
+                    public void onFailure(Call call, IOException e) {
+                        e.printStackTrace();
+                    }
+
+                    @Override
+                    public void onResponse(Call call, Response response) throws IOException {
+                        if (!response.isSuccessful()) {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Toast.makeText(MainActivity.this, "Failed to download file!", Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                            return;
+                        }
+                        String[] split = downloadUrl.split("/");
+                        String fileName = split[split.length-1];
+                        mDestinationPath = getExternalFilesDir(null) + "/" + fileName;
+                        if (response.body() == null) return;
+                        FileOutputStream fileOutputStream = new FileOutputStream(mDestinationPath);
+                        fileOutputStream.write(response.body().bytes());
+                        fileOutputStream.close();
+                        Log.d(TAG, "file downloaded to: " + mDestinationPath);
+                    }
+                });
     }
 
     private double getRmsAmplitude(short[] dataShortArray) {

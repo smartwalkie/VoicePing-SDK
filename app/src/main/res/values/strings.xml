@@ -2,6 +2,7 @@
     <string name="app_name">VoicePing Client</string>
     <string name="title_activity_login">Connect</string>
     <string name="title_activity_main">VoicePing</string>
+    <string name="title_activity_player">Player</string>
 
     <string name="text_button_connect">Connect</string>
     <string name="text_button_subscribe">Subscribe</string>
@@ -9,7 +10,12 @@
     <string name="text_button_unsubscribe">Unsubscribe</string>
     <string name="text_button_mute">Mute</string>
     <string name="text_button_unmute">Unmute</string>
+    <string name="text_button_play">Play</string>
+    <string name="text_button_pause">Pause</string>
+    <string name="text_button_stop">Stop</string>
+    <string name="text_button_open_player">Open Player</string>
     <string name="text_button_disconnect">Disconnect</string>
+
 
     <!-- Strings related to connect functionality -->
     <string name="prompt_user_id">User ID</string>
