@@ -3,6 +3,12 @@ package com.smartwalkie.voiceping;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
+import android.media.audiofx.AcousticEchoCanceler;
+import android.media.audiofx.AutomaticGainControl;
+import android.media.audiofx.BassBoost;
+import android.media.audiofx.LoudnessEnhancer;
+import android.media.audiofx.NoiseSuppressor;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.design.widget.TextInputLayout;
 import android.support.v7.app.AlertDialog;
@@ -24,11 +30,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.smartwalkie.voicepingsdk.callbacks.DisconnectCallback;
-import com.smartwalkie.voicepingsdk.exceptions.PingException;
+import com.smartwalkie.voicepingsdk.exceptions.VoicePingException;
 import com.smartwalkie.voicepingsdk.listeners.AudioInterceptor;
-import com.smartwalkie.voicepingsdk.listeners.AudioPlayer;
+import com.smartwalkie.voicepingsdk.listeners.AudioMetaData;
+import com.smartwalkie.voicepingsdk.listeners.AudioReceiver;
 import com.smartwalkie.voicepingsdk.listeners.AudioRecorder;
-import com.smartwalkie.voicepingsdk.listeners.ChannelListener;
+import com.smartwalkie.voicepingsdk.listeners.IncomingTalkListener;
 import com.smartwalkie.voicepingsdk.listeners.OutgoingTalkCallback;
 import com.smartwalkie.voicepingsdk.models.Channel;
 import com.smartwalkie.voicepingsdk.models.ChannelType;
@@ -37,6 +44,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
+import java.util.List;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -45,7 +53,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener,
-        ChannelListener, OutgoingTalkCallback {
+        IncomingTalkListener, OutgoingTalkCallback {
 
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final String[] CHANNEL_TYPES = { "PRIVATE", "GROUP" };
@@ -66,6 +74,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private TextView tvIncomingTalk;
     private ProgressBar pbIncomingTalk;
     private String mDestinationPath;
+    private Toast mToast;
 
     private int channelType = ChannelType.PRIVATE;
 
@@ -82,18 +91,22 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     }
                     talkButton.setText("RELEASE TO STOP");
                     talkButton.setBackgroundColor(Color.YELLOW);
-//                    VoicePingClientApp.getVoicePing().startTalking(receiverId, channelType, MainActivity.this, mDestinationPath);
-                    VoicePingClientApp.getVoicePing().startTalking(receiverId, channelType, MainActivity.this);
+                    mDestinationPath = getExternalFilesDir(null) + "/outgoing_ptt_audio.opus";
+                    VoicePingClientApp.getVoicePing().startTalk(receiverId, channelType, MainActivity.this, mDestinationPath);
+//                    VoicePingClientApp.getVoicePing().startTalk(receiverId, channelType, MainActivity.this);
+                    Log.d(TAG, "Recording starts at: " + System.currentTimeMillis());
                     break;
                 case MotionEvent.ACTION_UP:
                     talkButton.setText("START TALKING");
                     talkButton.setBackgroundColor(Color.GREEN);
-                    VoicePingClientApp.getVoicePing().stopTalking();
+                    VoicePingClientApp.getVoicePing().stopTalk();
+                    Log.d(TAG, "Recording stops at: " + System.currentTimeMillis());
                     break;
                 case MotionEvent.ACTION_CANCEL:
                     talkButton.setText("START TALKING");
                     talkButton.setBackgroundColor(Color.GREEN);
-                    VoicePingClientApp.getVoicePing().stopTalking();
+                    VoicePingClientApp.getVoicePing().stopTalk();
+                    Log.d(TAG, "Recording stops at: " + System.currentTimeMillis());
                     break;
             }
             return false;
@@ -106,7 +119,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             Log.v(TAG, "subscribeListener");
             String groupId = receiverIdText.getText().toString().trim();
             VoicePingClientApp.getVoicePing().subscribe(groupId);
-            Toast.makeText(MainActivity.this, "Subscribe to " + groupId, Toast.LENGTH_SHORT).show();
+            showToast("Subscribe to " + groupId);
         }
     };
 
@@ -116,7 +129,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             Log.v(TAG, "unsubscribeListener");
             String groupId = receiverIdText.getText().toString().trim();
             VoicePingClientApp.getVoicePing().unsubscribe(groupId);
-            Toast.makeText(MainActivity.this, "Unsubscribe from " + groupId, Toast.LENGTH_SHORT).show();
+            showToast("Unsubscribe from " + groupId);
         }
     };
 
@@ -126,7 +139,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             Log.v(TAG, "muteListener");
             String receiverId = receiverIdText.getText().toString().trim();
             VoicePingClientApp.getVoicePing().mute(receiverId, channelType);
-            Toast.makeText(MainActivity.this, "Mute channel " + receiverId, Toast.LENGTH_SHORT).show();
+            showToast("Mute channel " + receiverId);
         }
     };
 
@@ -136,7 +149,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             Log.v(TAG, "unmuteListener");
             String receiverId = receiverIdText.getText().toString().trim();
             VoicePingClientApp.getVoicePing().unmute(receiverId, channelType);
-            Toast.makeText(MainActivity.this, "Unmute channel " + receiverId, Toast.LENGTH_SHORT).show();
+            showToast("Unmute channel " + receiverId);
         }
     };
 
@@ -144,7 +157,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-//        mDestinationPath = getExternalFilesDir(null) + "/ptt_audio.opus";
 
         channelInputLayout = (TextInputLayout) findViewById(R.id.channel_input_layout);
         channelTypeSpinner = (Spinner) findViewById(R.id.channel_type_spinner);
@@ -187,7 +199,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         talkButton.setText("START TALKING");
         talkButton.setBackgroundColor(Color.GREEN);
 
-        VoicePingClientApp.getVoicePing().setChannelListener(this);
+        VoicePingClientApp.getVoicePing().setIncomingTalkListener(this);
     }
 
     @Override
@@ -221,19 +233,18 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                             public void onClick(DialogInterface dialog, int which) {
                                 VoicePingClientApp.getVoicePing()
                                         .disconnect(new DisconnectCallback() {
-                                    @Override
-                                    public void onDisconnected() {
-                                        Log.v(TAG, "onDisconnected...");
-                                        if (!isFinishing()) {
-                                            VoicePingClientApp.getVoicePing().unmuteAll();
-                                            startActivity(new Intent(MainActivity.this,
-                                                    LoginActivity.class));
-                                            finish();
-                                            Toast.makeText(MainActivity.this, "Disconnected!",
-                                                    Toast.LENGTH_SHORT).show();
-                                        }
-                                    }
-                                });
+                                            @Override
+                                            public void onDisconnected() {
+                                                Log.v(TAG, "onDisconnected...");
+                                                if (!isFinishing()) {
+                                                    VoicePingClientApp.getVoicePing().unmuteAll();
+                                                    startActivity(new Intent(MainActivity.this,
+                                                            LoginActivity.class));
+                                                    finish();
+                                                    showToast("Disconnected!");
+                                                }
+                                            }
+                                        });
                             }
                         })
                         .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
@@ -275,12 +286,29 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     }
 
-    // ChannelListener
+    // IncomingTalkListener
     @Override
-    public void onIncomingTalkStarted(AudioPlayer audioPlayer) {
-        Log.d(TAG, "onIncomingTalkStarted");
-        llIncomingTalk.setVisibility(View.VISIBLE);
-        audioPlayer.setInterceptorAfterDecoded(new AudioInterceptor() {
+    public void onIncomingTalkStarted(AudioReceiver audioReceiver, List<Channel> activeChannels) {
+        Log.d(TAG, "onIncomingTalkStarted, channel: " + audioReceiver.getChannel().toString());
+        // Audio processing
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            try {
+                LoudnessEnhancer enhancer = new LoudnessEnhancer(audioReceiver.getAudioSessionId());
+                enhancer.setTargetGain(300);
+                enhancer.setEnabled(true);
+            } catch (RuntimeException e) {
+                // Do nothing
+            }
+        }
+        BassBoost bassBoost = new BassBoost(10, audioReceiver.getAudioSessionId());
+        bassBoost.setStrength((short) 100);
+        bassBoost.setEnabled(true);
+
+        showIncomingTalkLayoutOnUiThread(true);
+
+        mDestinationPath = getExternalFilesDir(null) + "/incoming_ptt_audio.opus";
+        audioReceiver.saveToLocal(mDestinationPath);
+        audioReceiver.setInterceptorAfterDecoded(new AudioInterceptor() {
             @Override
             public byte[] proceed(byte[] data, final Channel channel) {
                 ShortBuffer sb = ByteBuffer.wrap(data).asShortBuffer();
@@ -300,21 +328,57 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     @Override
-    public void onIncomingTalkStopped() {
-        Log.d(TAG, "onIncomingTalkStopped");
-        llIncomingTalk.setVisibility(View.GONE);
+    public void onIncomingTalkStopped(AudioMetaData audioMetaData, List<Channel> activeChannels) {
+        Log.d(TAG, "onIncomingTalkStopped, channel: " +
+                audioMetaData.getChannel().toString() + ", download url: " +
+                audioMetaData.getDownloadUrl() + ", active channels count: " +
+                activeChannels.size());
+        if (activeChannels.size() == 0) {
+            showIncomingTalkLayoutOnUiThread(false);
+        }
     }
 
     @Override
-    public void onChannelError(PingException e) {
+    public void onIncomingTalkError(VoicePingException e) {
+        e.printStackTrace();
+        showIncomingTalkLayoutOnUiThread(false);
+    }
 
+    private void showIncomingTalkLayoutOnUiThread(final boolean show) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (show) {
+                    llIncomingTalk.setVisibility(View.VISIBLE);
+                } else {
+                    llIncomingTalk.setVisibility(View.GONE);
+                }
+            }
+        });
     }
 
     // OutgoingTalkCallback
     @Override
     public void onOutgoingTalkStarted(AudioRecorder audioRecorder) {
-        Log.d(TAG, "onOutgoingTalkStarted");
-        llOutgoingTalk.setVisibility(View.VISIBLE);
+        Log.d(TAG, "outgoing: onOutgoingTalkStarted");
+        // Audio processing
+        if (NoiseSuppressor.isAvailable()) {
+            Log.d(TAG, "NoiseSuppressor available");
+            NoiseSuppressor noiseSuppressor = NoiseSuppressor.create(audioRecorder.getAudioSessionId());
+            noiseSuppressor.setEnabled(true);
+        }
+        if (AcousticEchoCanceler.isAvailable()) {
+            Log.d(TAG, "AcousticEchoCanceler available");
+            AcousticEchoCanceler echoCanceler = AcousticEchoCanceler.create(audioRecorder.getAudioSessionId());
+            echoCanceler.setEnabled(true);
+        }
+        if (AutomaticGainControl.isAvailable()) {
+            Log.d(TAG, "AutomaticGainControl available");
+            AutomaticGainControl automaticGainControl = AutomaticGainControl.create(audioRecorder.getAudioSessionId());
+            automaticGainControl.setEnabled(true);
+        }
+
+        showOutgoingTalkLayoutOnUiThread(true);
         // Add interceptor before encoded
         audioRecorder.setInterceptorBeforeEncoded(new AudioInterceptor() {
             @Override
@@ -336,18 +400,39 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     @Override
-    public void onOutgoingTalkStopped(String downloadUrl) {
-        Log.d(TAG, "onOutgoingTalkStopped");
-        Log.d(TAG, "download url: " + downloadUrl);
-        downloadFileAsync(downloadUrl);
-        llOutgoingTalk.setVisibility(View.GONE);
+    public void onOutgoingTalkStopped(boolean isTooShort, boolean isTooLong) {
+        Log.d(TAG, "outgoing: onOutgoingTalkStopped, isTooShort: " + isTooShort + ", isTooLong: " + isTooLong);
+        showOutgoingTalkLayoutOnUiThread(false);
+        if (isTooShort) {
+            showToast("Press and hold the button to send PTT. Release after you are done.");
+        }
     }
 
     @Override
-    public void onOutgoingTalkError(PingException e) {
+    public void onDownloadUrlReceived(String downloadUrl) {
+        Log.d(TAG, "outgoing: onDownloadUrlReceived, download url: " + downloadUrl);
+//        downloadFileAsync(downloadUrl);
+    }
+
+    @Override
+    public void onOutgoingTalkError(VoicePingException e) {
+        Log.e(TAG, "outgoing: onOutgoingTalkError: " + e.getMessage());
         e.printStackTrace();
-        llOutgoingTalk.setVisibility(View.GONE);
-        Toast.makeText(this, e.getMessage(), Toast.LENGTH_SHORT).show();
+        showOutgoingTalkLayoutOnUiThread(false);
+        showToast(e.getMessage());
+    }
+
+    private void showOutgoingTalkLayoutOnUiThread(final boolean show) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (show) {
+                    llOutgoingTalk.setVisibility(View.VISIBLE);
+                } else {
+                    llOutgoingTalk.setVisibility(View.GONE);
+                }
+            }
+        });
     }
 
     private void downloadFileAsync(final String downloadUrl) {
@@ -367,7 +452,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    Toast.makeText(MainActivity.this, "Failed to download file!", Toast.LENGTH_SHORT).show();
+                                    showToast("Failed to download file!");
                                 }
                             });
                             return;
@@ -399,5 +484,16 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             if (max < singleShort) max = Math.abs(singleShort);
         }
         return max;
+    }
+
+    private void showToast(final String message) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (mToast != null) mToast.cancel();
+                mToast = Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT);
+                mToast.show();
+            }
+        });
     }
 }

@@ -13,7 +13,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import com.smartwalkie.voicepingsdk.callbacks.ConnectCallback;
-import com.smartwalkie.voicepingsdk.exceptions.PingException;
+import com.smartwalkie.voicepingsdk.exceptions.VoicePingException;
 
 import java.util.List;
 
@@ -98,7 +98,7 @@ public class LoginActivity extends AppCompatActivity implements
                 }
 
                 @Override
-                public void onFailed(final PingException exception) {
+                public void onFailed(final VoicePingException exception) {
                     Log.v(TAG, "onFailed");
                     showProgress(false);
                     Toast.makeText(LoginActivity.this, exception.getMessage(), Toast.LENGTH_SHORT)

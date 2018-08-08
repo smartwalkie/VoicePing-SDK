@@ -15,7 +15,13 @@ public class VoicePingClientApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        mVoicePing = VoicePing.init(this, "ws://vpjsex.southeastasia.cloudapp.azure.com");
+//        mVoicePing = VoicePing.init(this, "ws://vpjsex.southeastasia.cloudapp.azure.com");
+        mVoicePing = VoicePing.newBuilder()
+//                .setUsingOpusCodec(false)
+                .setRecordingBoostInDb(20)
+//                .setReceivingBoostInDb(20)
+//                .setPlaybackBoostInDb(20)
+                .buildAndInit(this, "wss://vpjsex-router.voiceoverping.net");
     }
 
     public static VoicePing getVoicePing() {

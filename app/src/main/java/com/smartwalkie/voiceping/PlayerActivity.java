@@ -14,6 +14,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.smartwalkie.voicepingsdk.VoicePingPlayer;
+import com.smartwalkie.voicepingsdk.models.AudioParam;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -63,12 +64,14 @@ public class PlayerActivity extends AppCompatActivity {
         @Override
         public void onClick(View view) {
             Log.v(TAG, "playListener");
-            if (mVoicePingPlayer == null || mVoicePingPlayer.isPlaying()) return;
+//            if (mVoicePingPlayer == null || mVoicePingPlayer.isPlaying()) return;
+            if (mVoicePingPlayer == null) return;
             File file = new File(mFilePath);
             if (!file.exists()) {
                 Toast.makeText(PlayerActivity.this, "File not exist!", Toast.LENGTH_SHORT).show();
                 return;
             }
+            VoicePingClientApp.getVoicePing().muteAll();
             mVoicePingPlayer.start();
             mTimer = new Timer();
             mTimer.scheduleAtFixedRate(new TimerTask() {
@@ -90,6 +93,7 @@ public class PlayerActivity extends AppCompatActivity {
         @Override
         public void onClick(View view) {
             Log.v(TAG, "pauseListener");
+            VoicePingClientApp.getVoicePing().unmuteAll();
             if (mVoicePingPlayer != null) mVoicePingPlayer.pause();
             if (mTimer != null) mTimer.cancel();
         }
@@ -99,6 +103,7 @@ public class PlayerActivity extends AppCompatActivity {
         @Override
         public void onClick(View view) {
             Log.v(TAG, "stopListener");
+            VoicePingClientApp.getVoicePing().unmuteAll();
             if (mVoicePingPlayer != null) mVoicePingPlayer.stop();
             if (mTimer != null) mTimer.cancel();
         }
@@ -134,7 +139,18 @@ public class PlayerActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        mVoicePingPlayer = new VoicePingPlayer(VoicePingClientApp.getVoicePing().getAudioParam(), 133);
+        initPlayer();
+    }
+
+    private void initPlayer() {
+        AudioParam audioParam = VoicePingClientApp.getVoicePing().getAudioParam();
+        int bufferSize;
+        if (audioParam.isUsingOpusCodec()) {
+            bufferSize = 133;
+        } else {
+            bufferSize = audioParam.getRawBufferSize();
+        }
+        mVoicePingPlayer = new VoicePingPlayer(audioParam, bufferSize);
         try {
             mVoicePingPlayer.setDataSource(mFilePath);
             mVoicePingPlayer.prepare();
@@ -157,9 +173,16 @@ public class PlayerActivity extends AppCompatActivity {
                     mVoicePingPlayer.seekTo(seekBar.getProgress());
                 }
             });
+            mVoicePingPlayer.setOnPlaybackStartedListener(new VoicePingPlayer.OnPlaybackStartedListener() {
+                @Override
+                public void onStart(int audioSessionId) {
+                    Log.d(TAG, "OnPlaybackStartedListener, session id: " + audioSessionId);
+                }
+            });
             mVoicePingPlayer.setOnCompletionListener(new VoicePingPlayer.OnCompletionListener() {
                 @Override
                 public void onComplete() {
+                    VoicePingClientApp.getVoicePing().unmuteAll();
                     if (mTimer != null) mTimer.cancel();
                     seekBar.setProgress((int) mVoicePingPlayer.getDuration());
                     timeProgress.setText(getTimeFromMillis(mVoicePingPlayer.getDuration()));
