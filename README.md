@@ -1,3 +1,7 @@
+# Warning: this repository is obsolete
+
+**Please take a look at the new repo: [VoicePing-Walkie-Talkie-AndroidSDK](https://github.com/SmartWalkieOrg/VoicePing-Walkie-Talkie-AndroidSDK)**
+
 # VoicePing Android SDK
 
 VoicePing Android SDK is an Android library, provided by 
